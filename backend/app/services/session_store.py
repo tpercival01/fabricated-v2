@@ -221,15 +221,16 @@ def _build_reveal(session) -> dict:
         "alibi_flaw": core.killer_alibi_flaw,
         "solution_explanation": session["case"].solution_explanation,
         "scoreboard": [
-            {
-                "player_id": p["id"],
-                "display_name": p["display_name"],
-                "suspect_played": p["suspect_id"],
-                "accused": p["accusation"]["killer_id"] if p["accusation"] else None,
-                "correct": p["accusation"]["is_correct"] if p["accusation"] else False,
-            }
-            for p in session["players"]
-        ]
+        {
+            "player_id": p["id"],
+            "display_name": p["display_name"],
+            "suspect_played": next((s.name for s in session["case"].suspects if s.id == p["suspect_id"]), p["suspect_id"]),
+            "accused": p["accusation"]["killer_id"] if p["accusation"] else None,
+            "accused_name": next((s.name for s in session["case"].suspects if s.id == p["accusation"]["killer_id"]), p["accusation"]["killer_id"]) if p["accusation"] else None,
+            "correct": p["accusation"]["is_correct"] if p["accusation"] else False,
+        }
+        for p in session["players"]
+]
     }
 
 def debug_print_session(session_id: str):
@@ -244,3 +245,38 @@ def debug_print_session(session_id: str):
     print(f"PLAYERS:")
     for p in session["players"]:
         print(f"  {p['display_name']} | token: {p['join_token']} | suspect: {p['suspect_id']} | accused: {p['accusation']}")
+
+def ask_question(session_id: str, join_token: str, question: str) -> dict | None:
+    from app.services.game_master import ask_game_master
+
+    session = get_session_by_id(session_id)
+    if not session:
+        return None
+
+    if session["status"] != "active":
+        raise ValueError("Game is not active.")
+
+    # Find player by token
+    player = next((p for p in session["players"] if p["join_token"] == join_token), None)
+    if not player:
+        raise ValueError("Invalid join token.")
+
+    # Check 1 question per player per round
+    current_round = session["current_round"]
+    history = session.get("gm_history", [])
+    already_asked = any(
+        h["player_id"] == player["id"] and h["round"] == current_round
+        for h in history
+    )
+    if already_asked:
+        raise ValueError(f"You have already asked a question this round.")
+
+    # Ask the game master
+    answer = ask_game_master(session, question, player)
+
+    return {
+        "player_name": player["display_name"],
+        "question": question,
+        "answer": answer,
+        "round": current_round,
+    }

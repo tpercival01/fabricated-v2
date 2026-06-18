@@ -49,3 +49,8 @@ export const debugSession = async (session_id: string) => {
   const res = await api.get(`/sessions/${session_id}/debug`)
   return res.data
 }
+
+export const askGameMaster = async (session_id: string, join_token: string, question: string) => {
+  const res = await api.post(`/sessions/${session_id}/ask`, { join_token, question })
+  return res.data
+}

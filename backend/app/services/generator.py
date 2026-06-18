@@ -153,8 +153,9 @@ def _phase3_evidence(theme, difficulty, rules, schema, core_truth: CoreTruth, su
         6. deduction_logic must explain the clue's significance without assuming the player 
         knows who the killer is.
         7. Spread reveal_round values between 1 and 4. Don't dump everything in round 1.
-        8. solution_explanation must walk through the clues step by step to prove guilt.
-
+        8. solution_explanation must walk through the clues step by step to prove guilt. 
+        Write it as flowing prose — no bullet points, no asterisks, no numbered lists. 
+        It must read as a single cohesive paragraph.
         SCHEMA:
         {schema}
     """

@@ -1,1 +1,48 @@
 @import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700;900&family=Inter:wght@300;400;500;600;700&display=swap');
+:root {
+    --bg: #080808;
+    --surface: #111111;
+    --surface-raised: #181818;
+    --border: #252525;
+    --border-light: #303030;
+    --accent: #c9922a;
+    --accent-dim: #8a6218;
+    --text: #e8e0d0;
+    --text-muted: #6b6560;
+    --text-faint: #302e2a;
+    --danger: #c0392b;
+    --success: #2ecc71;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    background-color: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', sans-serif;
+    -webkit-font-smoothing: antialiased;
+}
+
+.font-serif {
+    font-family: 'Playfair Display', serif;
+}
+
+
+/* Noise texture overlay for cards */
+
+.paper {
+    position: relative;
+}
+
+.paper::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+    border-radius: inherit;
+    pointer-events: none;
+    opacity: 0.4;
+}

@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from app.services.generator import generate_new_case
 from app.services.session_store import create_session, get_session_by_id, get_session_by_code, add_player, start_session, advance_round, submit_accusation
-from app.services.session_store import create_session, get_session_by_id, get_session_by_code, add_player, start_session, advance_round, submit_accusation, debug_print_session
+from app.services.session_store import create_session, get_session_by_id, get_session_by_code, add_player, start_session, advance_round, submit_accusation, debug_print_session, ask_question
 
 router = APIRouter(prefix="/sessions", tags=["sessions"])
 
@@ -174,3 +174,53 @@ def make_accusation(session_id: str, request: AccusationRequest):
         raise HTTPException(status_code=404, detail="Session not found.")
 
     return result
+
+class AskQuestionRequest(BaseModel):
+    join_token: str
+    question: str
+
+
+@router.post("/{session_id}/ask")
+def ask_game_master(session_id: str, request: AskQuestionRequest):
+    try:
+        result = ask_question(session_id, request.join_token, request.question)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+    if not result:
+        raise HTTPException(status_code=404, detail="Session not found.")
+
+    return result
+
+@router.post("/dev/quickstart")
+def dev_quickstart():
+    from app.services.session_store import create_session, add_player, start_session
+    from app.services.generator import generate_new_case
+
+    case = generate_new_case("1920s Mansion", "standard", 4)
+    if not case:
+        raise HTTPException(status_code=500, detail="Generation failed.")
+
+    session = create_session("1920s Mansion", "standard", 4, case)
+    session_id = session["id"]
+    room_code = session["room_code"]
+
+    names = ["Thomas", "Marina", "Dolly", "Elroy"]
+    players = []
+    for name in names:
+        result = add_player(room_code, name)
+        players.append({
+            "display_name": name,
+            "join_token": result["player"]["join_token"],
+            "suspect_id": result["player"]["suspect_id"],
+            "character_card": result["character_card"],
+        })
+
+    game_state = start_session(session_id)
+
+    return {
+        "session_id": session_id,
+        "room_code": room_code,
+        "players": players,
+        "game_state": game_state,
+    }
