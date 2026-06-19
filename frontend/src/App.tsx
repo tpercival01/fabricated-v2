@@ -24,7 +24,6 @@ export default function App() {
     setPlayerCount(count)
   
     if (players && gameState) {
-      // Dev quickstart — skip lobby, go straight to game
       setPlayers(players)
       setGameState(gameState)
       setScreen('game')
@@ -37,15 +36,10 @@ export default function App() {
     }
   }
 
-  const handleGameStarted = async (state: GameState) => {
+  const handleGameStarted = (state: GameState, joinedPlayers: any[]) => {
     setGameState(state)
+    setPlayers(joinedPlayers)
     setScreen('game')
-    try {
-      const debug = await debugSession(state.session_id)
-      setPlayers(debug.players)
-    } catch (e) {
-      // silent fail
-    }
   }
 
   const handleGameComplete = (revealData: any) => {

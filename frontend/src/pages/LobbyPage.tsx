@@ -1,35 +1,49 @@
-import { useState, useEffect } from 'react'
-import { getSession, startGame } from '../api'
+import { useState } from 'react'
+import { getSession, startGame, joinSession } from '../api'
 import { GameState } from '../types'
 
 interface LobbyPageProps {
   sessionId: string
   roomCode: string
   playerCount: number
-  onGameStarted: (gameState: GameState) => void
+  onGameStarted: (gameState: GameState, players: any[]) => void
 }
 
 export default function LobbyPage({ sessionId, roomCode, playerCount, onGameStarted }: LobbyPageProps) {
   const [joined, setJoined] = useState(0)
+  const [addedPlayers, setAddedPlayers] = useState<any[]>([])
+  const [nameInput, setNameInput] = useState('')
+  const [adding, setAdding] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
-    const interval = setInterval(async () => {
-      try {
-        const session = await getSession(sessionId)
-        setJoined(session.player_count_joined)
-      } catch (e) {}
-    }, 3000)
-    return () => clearInterval(interval)
-  }, [sessionId])
+  const handleAddPlayer = async () => {
+    if (!nameInput.trim()) return
+    setAdding(true)
+    setError(null)
+    try {
+      const result = await joinSession(roomCode, nameInput.trim())
+      setAddedPlayers(prev => [...prev, {
+        display_name: result.display_name,
+        join_token: result.join_token,
+        suspect_id: result.character_card.suspect_id,
+        character_card: result.character_card,
+      }])
+      setJoined(prev => prev + 1)
+      setNameInput('')
+    } catch (e: any) {
+      setError(e.response?.data?.detail || 'Failed to add player.')
+    } finally {
+      setAdding(false)
+    }
+  }
 
   const handleStart = async () => {
     setLoading(true)
     setError(null)
     try {
       const gameState = await startGame(sessionId)
-      onGameStarted(gameState)
+      onGameStarted(gameState, addedPlayers)
     } catch (e: any) {
       setError(e.response?.data?.detail || 'Failed to start game.')
       setLoading(false)
@@ -69,22 +83,64 @@ export default function LobbyPage({ sessionId, roomCode, playerCount, onGameStar
         {/* Players */}
         <div>
           <p className="text-xs uppercase tracking-widest mb-4" style={{ color: 'var(--text-muted)' }}>
-            Players — {joined} of {playerCount} joined
+            Players — {joined} of {playerCount} added
           </p>
-          <div className="flex gap-3">
-            {Array.from({ length: playerCount }).map((_, i) => (
-              <div
-                key={i}
-                className="w-10 h-10 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-500"
+
+          {/* Add player input */}
+          {joined < playerCount && (
+            <div className="flex gap-3 mb-4">
+              <input
+                type="text"
+                value={nameInput}
+                onChange={e => setNameInput(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && handleAddPlayer()}
+                placeholder="Enter player name..."
+                className="flex-1 rounded-lg px-4 py-3 text-sm focus:outline-none"
                 style={{
-                  backgroundColor: i < joined ? 'var(--accent)' : 'var(--surface)',
-                  border: `1px solid ${i < joined ? 'var(--accent)' : 'var(--border)'}`,
-                  color: i < joined ? 'var(--bg)' : 'var(--text-faint)',
+                  backgroundColor: 'var(--surface)',
+                  border: '1px solid var(--border)',
+                  color: 'var(--text)',
+                }}
+              />
+              <button
+                onClick={handleAddPlayer}
+                disabled={adding || !nameInput.trim()}
+                className="px-6 py-3 rounded-lg font-semibold text-sm transition-all disabled:opacity-30"
+                style={{
+                  backgroundColor: 'var(--accent)',
+                  color: 'var(--bg)',
                 }}
               >
-                {i < joined ? '✓' : i + 1}
+                {adding ? '...' : 'Add'}
+              </button>
+            </div>
+          )}
+
+          {/* Player list */}
+          <div className="space-y-2">
+            {addedPlayers.map((p, i) => (
+              <div
+                key={i}
+                className="flex items-center gap-3 px-4 py-3 rounded-lg"
+                style={{
+                  backgroundColor: 'var(--surface)',
+                  border: '1px solid var(--border)',
+                }}
+              >
+                <span
+                  className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shrink-0"
+                  style={{ backgroundColor: 'var(--accent)', color: 'var(--bg)' }}
+                >
+                  ✓
+                </span>
+                <span className="text-sm" style={{ color: 'var(--text)' }}>{p.display_name}</span>
               </div>
             ))}
+            {addedPlayers.length === 0 && (
+              <p className="text-sm" style={{ color: 'var(--text-faint)' }}>
+                No players added yet.
+              </p>
+            )}
           </div>
         </div>
 
