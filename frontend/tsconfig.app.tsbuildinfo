@@ -1,0 +1,1 @@
+{"root":["./src/app.tsx","./src/main.tsx","./src/vite-env.d.ts","./src/api/index.ts","./src/components/charactercardmodal.tsx","./src/pages/accusepage.tsx","./src/pages/gamepage.tsx","./src/pages/hostpage.tsx","./src/pages/lobbypage.tsx","./src/pages/revealpage.tsx","./src/types/index.ts"],"version":"6.0.3"}

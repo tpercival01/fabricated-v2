@@ -98,6 +98,7 @@ export default function App() {
         players={players}
         suspects={gameState!.suspects}
         onReveal={handleReveal}
+        onBack={() => setScreen('game')}
       />
     )
   }

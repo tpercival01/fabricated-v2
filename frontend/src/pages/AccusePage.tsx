@@ -7,9 +7,10 @@ interface AccusePageProps {
   players: any[]
   suspects: Suspect[]
   onReveal: (reveal: any) => void
+  onBack: () => void
 }
 
-export default function AccusePage({ sessionId, players, suspects, onReveal }: AccusePageProps) {
+export default function AccusePage({ sessionId, players, suspects, onBack, onReveal }: AccusePageProps) {
   const [currentPlayerIndex, setCurrentPlayerIndex] = useState(0)
   const [selectedSuspectId, setSelectedSuspectId] = useState<string | null>(null)
   const [motive, setMotive] = useState('')
@@ -65,6 +66,15 @@ export default function AccusePage({ sessionId, players, suspects, onReveal }: A
             Each player names their killer. Choose carefully.
           </p>
           <div className="mt-4 h-px w-16" style={{ backgroundColor: 'var(--accent)' }} />
+          {submitted.length === 0 && (
+            <button
+              onClick={onBack}
+              className="text-sm mt-4 transition-all"
+              style={{ color: 'var(--text-muted)' }}
+            >
+              ← Back to investigation
+            </button>
+          )}
         </div>
 
         {/* Progress bar */}

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { getSession, startGame, joinSession } from '../api'
+import { startGame, joinSession } from '../api'
 import { GameState } from '../types'
 
 interface LobbyPageProps {
