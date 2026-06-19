@@ -17,38 +17,73 @@ interface GamePageProps {
   onGameComplete: (reveal: any) => void
 }
 
-function SuspectCard({ suspect, onClick, selected }: { suspect: Suspect, onClick: () => void, selected: boolean }) {
+function SuspectCard({ suspect, onClick, selected, clueCount, status, onStatusChange }: {
+  suspect: Suspect
+  onClick: () => void
+  selected: boolean
+  clueCount?: number
+  status: string | undefined
+  onStatusChange: (status: string) => void
+}) {
+  const statusConfig: Record<string, { label: string, color: string }> = {
+    cleared: { label: 'Cleared', color: '#4a9e6b' },
+    suspicious: { label: 'Suspicious', color: 'var(--accent)' },
+    prime: { label: 'Prime Suspect', color: '#c0392b' },
+  }
+
   return (
     <div
-      onClick={onClick}
       className="rounded-xl p-4 cursor-pointer transition-all"
       style={{
         backgroundColor: selected ? 'var(--surface-raised)' : 'var(--surface)',
         border: `1px solid ${selected ? 'var(--accent-dim)' : 'var(--border)'}`,
       }}
     >
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-3" onClick={onClick}>
         <div
           className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold shrink-0"
           style={{
             backgroundColor: 'var(--surface-raised)',
-            border: '1px solid var(--border-light)',
-            color: 'var(--accent)',
+            border: `1px solid ${status ? statusConfig[status]?.color : 'var(--border-light)'}`,
+            color: status ? statusConfig[status]?.color : 'var(--accent)',
           }}
         >
           {getInitials(suspect.name)}
         </div>
+        <div className="min-w-0 flex-1 flex items-center gap-2">
         <div className="min-w-0">
-          <p className="font-semibold text-sm truncate" style={{ color: 'var(--text)' }}>
-            {suspect.name}
-          </p>
-          <p className="text-xs truncate" style={{ color: 'var(--text-muted)' }}>
-            {suspect.role}
-          </p>
+            <p className="font-semibold text-sm truncate" style={{ color: 'var(--text)' }}>
+              {suspect.name}
+            </p>
+            <p className="text-xs truncate" style={{ color: 'var(--text-muted)' }}>
+              {suspect.role}
+            </p>
+          </div>
+          {clueCount ? (
+            <span
+              className="text-xs px-1.5 py-0.5 rounded-full font-bold shrink-0"
+              style={{ backgroundColor: 'var(--accent)', color: 'var(--bg)' }}
+            >
+              {clueCount}
+            </span>
+          ) : null}
         </div>
+        {status && (
+          <span
+            className="text-xs font-medium px-2 py-0.5 rounded-full shrink-0"
+            style={{
+              backgroundColor: `${statusConfig[status]?.color}20`,
+              color: statusConfig[status]?.color,
+              border: `1px solid ${statusConfig[status]?.color}40`,
+            }}
+          >
+            {statusConfig[status]?.label}
+          </span>
+        )}
       </div>
+
       {selected && (
-        <div className="mt-3 pt-3 space-y-2" style={{ borderTop: '1px solid var(--border)' }}>
+        <div className="mt-3 pt-3 space-y-3" style={{ borderTop: '1px solid var(--border)' }}>
           <div>
             <p className="text-xs uppercase tracking-widest mb-1" style={{ color: 'var(--text-muted)' }}>Relationship</p>
             <p className="text-xs leading-relaxed" style={{ color: 'var(--text)' }}>{suspect.relationship_to_victim}</p>
@@ -57,40 +92,132 @@ function SuspectCard({ suspect, onClick, selected }: { suspect: Suspect, onClick
             <p className="text-xs uppercase tracking-widest mb-1" style={{ color: 'var(--text-muted)' }}>Alibi</p>
             <p className="text-xs leading-relaxed" style={{ color: 'var(--text)' }}>{suspect.alibi}</p>
           </div>
+          <div>
+            <p className="text-xs uppercase tracking-widest mb-2" style={{ color: 'var(--text-muted)' }}>Mark as</p>
+            <div className="flex gap-2">
+              {Object.entries(statusConfig).map(([key, cfg]) => (
+                <button
+                  key={key}
+                  onClick={e => {
+                    e.stopPropagation()
+                    onStatusChange(status === key ? '' : key)
+                  }}
+                  className="px-3 py-1 rounded-lg text-xs font-medium transition-all"
+                  style={{
+                    backgroundColor: status === key ? `${cfg.color}20` : 'var(--bg)',
+                    border: `1px solid ${status === key ? cfg.color : 'var(--border)'}`,
+                    color: status === key ? cfg.color : 'var(--text-muted)',
+                  }}
+                >
+                  {cfg.label}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
       )}
     </div>
   )
 }
 
-function ClueCard({ clue, isNew }: { clue: Clue & { round: number }, isNew: boolean }) {
+function ClueCard({ clue, isNew, onLink, linkedSuspect, suspects, isLinking, onLinkToggle }: {
+  clue: Clue & { round: number }
+  isNew: boolean
+  onLink: (suspectId: string) => void
+  linkedSuspect?: Suspect
+  suspects: Suspect[]
+  isLinking: boolean
+  onLinkToggle: () => void
+}) {
   return (
     <div
       className="rounded-xl p-4 transition-all"
       style={{
         backgroundColor: isNew ? 'var(--surface-raised)' : 'var(--surface)',
-        border: `1px solid ${isNew ? 'var(--accent)' : 'var(--border)'}`,
+        border: `1px solid ${isLinking ? 'var(--accent)' : isNew ? 'var(--accent)' : 'var(--border)'}`,
       }}
     >
-      <div className="flex items-center gap-2 mb-2">
-        <span
-          className="text-xs uppercase tracking-widest"
-          style={{ color: 'var(--text-muted)' }}
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex-1">
+          <div className="flex items-center gap-2 mb-2">
+            <span className="text-xs uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>
+              Round {clue.round}
+            </span>
+            {isNew && (
+              <span
+                className="text-xs font-bold px-2 py-0.5 rounded-full"
+                style={{ backgroundColor: 'var(--accent)', color: 'var(--bg)' }}
+              >
+                New
+              </span>
+            )}
+            {linkedSuspect && (
+              <span
+                className="text-xs px-2 py-0.5 rounded-full"
+                style={{
+                  backgroundColor: 'var(--surface-raised)',
+                  border: '1px solid var(--border-light)',
+                  color: 'var(--accent)',
+                }}
+              >
+                → {linkedSuspect.name.split(' ')[0]}
+              </span>
+            )}
+          </div>
+          <p className="text-sm leading-relaxed" style={{ color: isNew ? 'var(--text)' : 'var(--text-muted)' }}>
+            {clue.description}
+          </p>
+        </div>
+        <button
+          onClick={onLinkToggle}
+          className="shrink-0 text-xs px-2 py-1 rounded-lg transition-all mt-1"
+          style={{
+            backgroundColor: isLinking ? 'var(--accent)' : 'var(--bg)',
+            border: `1px solid ${isLinking ? 'var(--accent)' : 'var(--border)'}`,
+            color: isLinking ? 'var(--bg)' : 'var(--text-muted)',
+          }}
+          title="Link to suspect"
         >
-          Round {clue.round}
-        </span>
-        {isNew && (
-          <span
-            className="text-xs font-bold px-2 py-0.5 rounded-full"
-            style={{ backgroundColor: 'var(--accent)', color: 'var(--bg)' }}
-          >
-            New
-          </span>
-        )}
+          {linkedSuspect ? '⇄' : '→'}
+        </button>
       </div>
-      <p className="text-sm leading-relaxed" style={{ color: isNew ? 'var(--text)' : 'var(--text-muted)' }}>
-        {clue.description}
-      </p>
+
+      {isLinking && (
+        <div className="mt-3 pt-3" style={{ borderTop: '1px solid var(--border)' }}>
+          <p className="text-xs mb-2" style={{ color: 'var(--text-muted)' }}>
+            Link this clue to...
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {suspects.map(s => (
+              <button
+                key={s.suspect_id}
+                onClick={() => onLink(s.suspect_id)}
+                className="px-3 py-1 rounded-lg text-xs transition-all"
+                style={{
+                  backgroundColor: 'var(--surface-raised)',
+                  border: '1px solid var(--border-light)',
+                  color: 'var(--text)',
+                }}
+              >
+                {s.name.split(' ').slice(-1)[0]}
+              </button>
+            ))}
+            {linkedSuspect && (
+              <button
+                onClick={() => onLink('')}
+                className="px-3 py-1 rounded-lg text-xs transition-all"
+                style={{
+                  backgroundColor: 'var(--bg)',
+                  border: '1px solid var(--border)',
+                  color: 'var(--text-muted)',
+                }}
+              >
+                Remove link
+              </button>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   )
 }
@@ -110,6 +237,9 @@ export default function GamePage({ gameState, sessionId, players, onGameComplete
   const [gmHistory, setGmHistory] = useState<any[]>([])
   const [gmLoading, setGmLoading] = useState(false)
   const [gmError, setGmError] = useState<string | null>(null)
+  const [suspectStatus, setSuspectStatus] = useState<Record<string, string>>({})
+  const [clueLinks, setClueLinks] = useState<Record<string, string>>({})
+  const [linkingClue, setLinkingClue] = useState<string | null>(null)
 
   const handleAdvance = async () => {
     setLoading(true)
@@ -208,7 +338,19 @@ export default function GamePage({ gameState, sessionId, players, onGameComplete
                   </p>
                 )}
                 {allClues.map(clue => (
-                  <ClueCard key={clue.clue_id} clue={clue} isNew={clue.round === latestRound} />
+                  <ClueCard
+                    key={clue.clue_id}
+                    clue={clue}
+                    isNew={clue.round === latestRound}
+                    suspects={gameState.suspects}
+                    linkedSuspect={gameState.suspects.find(s => s.suspect_id === clueLinks[clue.clue_id])}
+                    isLinking={linkingClue === clue.clue_id}
+                    onLinkToggle={() => setLinkingClue(linkingClue === clue.clue_id ? null : clue.clue_id)}
+                    onLink={(suspectId) => {
+                      setClueLinks(prev => ({ ...prev, [clue.clue_id]: suspectId }))
+                      setLinkingClue(null)
+                    }}
+                  />
                 ))}
               </div>
             </div>
@@ -345,16 +487,22 @@ export default function GamePage({ gameState, sessionId, players, onGameComplete
             </div>
 
             <div className="space-y-2">
-              {gameState.suspects.map(suspect => (
-                <SuspectCard
-                  key={suspect.suspect_id}
-                  suspect={suspect}
-                  selected={selectedSuspect?.suspect_id === suspect.suspect_id}
-                  onClick={() => setSelectedSuspect(
-                    selectedSuspect?.suspect_id === suspect.suspect_id ? null : suspect
-                  )}
-                />
-              ))}
+            {gameState.suspects.map(suspect => (
+              <SuspectCard
+                key={suspect.suspect_id}
+                suspect={suspect}
+                selected={selectedSuspect?.suspect_id === suspect.suspect_id}
+                status={suspectStatus[suspect.suspect_id]}
+                clueCount={Object.values(clueLinks).filter(id => id === suspect.suspect_id).length || undefined}
+                onStatusChange={(newStatus) => setSuspectStatus(prev => ({
+                  ...prev,
+                  [suspect.suspect_id]: newStatus,
+                }))}
+                onClick={() => setSelectedSuspect(
+                  selectedSuspect?.suspect_id === suspect.suspect_id ? null : suspect
+                )}
+              />
+            ))}
             </div>
           </div>
 
