@@ -15,6 +15,7 @@ app.add_middleware(
     allow_origins=[
         "http://localhost:5173",
         "https://fabricated-v2.vercel.app",
+        "https://fabricated.thomaspercival.dev",
     ],
     allow_credentials=True,
     allow_methods=["*"],
