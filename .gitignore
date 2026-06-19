@@ -1,6 +1,7 @@
 # Python
 __pycache__
 .env
+.env.production
 
 # Node
 frontend/node_modules/
